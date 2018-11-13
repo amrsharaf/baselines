@@ -1,6 +1,7 @@
 import sys
 import multiprocessing
 import os.path as osp
+import gym_bandit
 import gym
 from collections import defaultdict
 import tensorflow as tf
