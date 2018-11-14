@@ -90,10 +90,10 @@ def supervised_baseline(n_episodes, env, supervised_cost, bandit_cost):
 def main():
     # TODO measure standard deviation
     n_episodes = 200
-    budget = 200000
+    budget = 200
     horizon = 200
     supervised_cost = 2
-    bandit_cost = 1
+    bandit_cost = 0
     # Create an instance of the bandit environment
     register(id='bandit-v1', entry_point='gym_bandit.learning:BanditEnv', kwargs={'budget': budget,
                                                                                   'horizon': horizon,
