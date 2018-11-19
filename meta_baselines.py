@@ -67,10 +67,11 @@ def run_bandit(n_episodes, env, supervised_cost, bandit_cost, policy, max_arm_pu
     # Reset environment
     env.reset()
     total_reward = 0.0
-    # Total number of arm pulls!
-    total_arm_pulls = 0
     for episode_id in range(n_episodes):
+        # Reset the environment
         observation = env.reset()
+        # Total number of arm pulls!
+        total_arm_pulls = 0
         done = False
         while not done:
             action = policy(env=env, observation=observation, supervised_cost=supervised_cost, bandit_cost=bandit_cost)
@@ -82,7 +83,7 @@ def run_bandit(n_episodes, env, supervised_cost, bandit_cost, policy, max_arm_pu
             observation, reward, done, info = env.step(action)
         total_reward += reward
         average_reward = total_reward / float(episode_id+1)
-    print('average reward random baseline: ', average_reward)
+    print('average reward ', policy, ' baseline: ', average_reward)
 
 
 def observation_to_state(observation):
@@ -112,6 +113,17 @@ def supervised_baseline(n_episodes, env, supervised_cost, bandit_cost, max_arm_p
                       policy=SupervisedPolicy(), max_arm_pulls=max_arm_pulls)
 
 
+# Creates a muti-arm bandit environment
+def create_bandit_environment(budget, horizon, supervised_cost, bandit_cost):
+    # Create an instance of the bandit environment
+    register(id='bandit-v1', entry_point='gym_bandit.learning:BanditEnv', kwargs={'budget': budget,
+                                                                                  'horizon': horizon,
+                                                                                  'supervised_cost': supervised_cost,
+                                                                                  'bandit_cost': bandit_cost})
+    env = gym.make('bandit-v1')
+    return env
+
+
 # TODO print confidence intervals as well
 def all_baselines():
     # TODO measure standard deviation
@@ -120,12 +132,8 @@ def all_baselines():
     horizon = 200
     supervised_cost = 2
     bandit_cost = 0
-    # Create an instance of the bandit environment
-    register(id='bandit-v1', entry_point='gym_bandit.learning:BanditEnv', kwargs={'budget': budget,
-                                                                                  'horizon': horizon,
-                                                                                  'supervised_cost': supervised_cost,
-                                                                                  'bandit_cost': bandit_cost})
-    env = gym.make('bandit-v1')
+    env = create_bandit_environment(budget=budget, horizon=horizon, supervised_cost=supervised_cost,
+                                    bandit_cost=bandit_cost)
     bandit_baseline(n_episodes, env, supervised_cost=supervised_cost, bandit_cost=bandit_cost, max_arm_pulls=math.inf)
     supervised_baseline(n_episodes, env, supervised_cost=supervised_cost, bandit_cost=bandit_cost,
                         max_arm_pulls=math.inf)
@@ -134,18 +142,42 @@ def all_baselines():
 
 
 def main():
+    # TODO abstract away the common parameters with the all_baselines method
+    n_episodes = 200
+    budget = 200
+    horizon = 200
+    supervised_cost = 2
+    bandit_cost = 1
+    # Create an instance of the bandit environment
+    env = create_bandit_environment(budget=budget, horizon=horizon, supervised_cost=supervised_cost,
+                                    bandit_cost=bandit_cost)
     # x-axis: number of arm pulls
     # TODO what is the maximum number of arms to plot?
-    max_arm_pulls = 100
+    max_arm_pulls = 200
+    # TODO do we need this variable?
     arm_pulls = np.arange(max_arm_pulls)
-    accuracy = np.zeros(max_arm_pulls)
-    print('accuracy: ', accuracy)
+    bandit_accuracy = np.zeros(max_arm_pulls)
+    print('bandit_accuracy: ', bandit_accuracy)
+    supervised_accuracy = np.zeros(max_arm_pulls)
+    print('supervised_accuracy: ', supervised_accuracy)
+    # TODO this is so slow
+    step = 10
+    for threshold in range(0, max_arm_pulls, step):
+        print('threshold: ', threshold)
+        max_arm_pulls = threshold
+        bandit_accuracy[threshold] = bandit_baseline(n_episodes=n_episodes, env=env, supervised_cost=supervised_cost,
+                                                     bandit_cost=bandit_cost, max_arm_pulls=max_arm_pulls)
+        supervised_accuracy[threshold] = supervised_baseline(n_episodes=n_episodes, env=env,
+                                                             supervised_cost=supervised_cost, bandit_cost=bandit_cost,
+                                                             max_arm_pulls=max_arm_pulls)
     # Now we need to get the best arm identification accuracy for the y_axis for both bandit and supervised baselines
     # I think we need to update the run function to take extra input the maximum allowed arm pulls
-    plt.plot(arm_pulls)
+    plt.plot(bandit_accuracy, label='bandit')
+    plt.plot(supervised_accuracy, label='supervised')
+    plt.legend()
     plt.show()
 
 
 if __name__ == '__main__':
-    all_baselines()
-#    main()
+#    all_baselines()
+    main()
