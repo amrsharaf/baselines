@@ -96,8 +96,8 @@ def run_bandit(n_episodes, env, costs, policy, max_arm_pulls):
             # TODO refactor to keep track of this information in a better way
             if observation[1] == -1:
                 state = observation_to_state(observation)
-                stats['counts_arm_0'] = stats['counts_arm_0'] + state.counts_arm_0
-                stats['counts_arm_1'] = stats['counts_arm_1'] + state.counts_arm_1
+                stats['counts_arm_0'] = stats['counts_arm_0'] + state.counts[0]
+                stats['counts_arm_1'] = stats['counts_arm_1'] + state.counts[1]
         total_reward += reward
         average_reward = total_reward / float(episode_id+1)
     print('average reward ', policy, ' baseline: ', average_reward)
@@ -108,8 +108,10 @@ def run_bandit(n_episodes, env, costs, policy, max_arm_pulls):
 
 
 def observation_to_state(observation):
-    state = rl.State(budget=observation[0], horizon=observation[1], rewards_arm_0=observation[2],
-                     rewards_arm_1=observation[3], counts_arm_0=observation[4], counts_arm_1=observation[5])
+#    print('got observation: ', observation)
+    return observation
+    state = rl.State(budget=observation[0], horizon=observation[1], rewards=[observation[2], observation[3]],
+                     counts=[observation[4], observation[5]])
     return state
 
 
@@ -138,9 +140,11 @@ def single_baseline(n_episodes, env, costs, max_arm_pulls):
 # Creates a muti-arm bandit environment
 def register_bandit_env(budget, horizon, costs):
     # Create an instance of the bandit environment
+    K = 2
     register(id='bandit-v1', entry_point='gym_bandit.learning:BanditEnv', kwargs={'budget': budget,
                                                                                   'horizon': horizon,
-                                                                                  'costs': costs})
+                                                                                  'costs': costs,
+                                                                                  'K': K})
     print('registered!')
 
 
